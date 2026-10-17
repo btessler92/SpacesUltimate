@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1
+
+- Stopped restoring the legacy named menu bar slot, which can leave the item invisible after relaunch.
+- Added an application Settings menu and Command-comma shortcut so Preferences remains accessible without the status item.
+
 ## Initial open-source release
 
 - Added the MIT license, contribution guidance, bug-report template, privacy and security documentation, and macOS CI.

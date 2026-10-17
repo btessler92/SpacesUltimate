@@ -110,7 +110,8 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         self.refreshSpaces = refreshSpaces
         self.resetMenuBarItem = resetMenuBarItem
         super.init()
-        statusItem.autosaveName = MenuBarStatusItemDefaults.autosaveName
+        // A persisted autosave name can restore an invisible/stale status-item slot.
+        // Leave autosaveName unset; macOS owns placement for the live item.
         statusItem.behavior = [.removalAllowed]
     }
 
@@ -328,9 +329,10 @@ enum MenuBarClickIntent: Equatable {
 }
 
 enum MenuBarStatusItemDefaults {
-    static let autosaveName = "SpacesUltimateStatusItem"
+    static let autosaveName = "none"
     static let knownAutosaveNames = [
-        autosaveName,
+        "SpacesUltimateStatusItem",
+        "Item-0",
         "SpacesUltimateStatusItem2",
         "SpacesUltimateMenuBarItem"
     ]

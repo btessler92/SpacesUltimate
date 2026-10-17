@@ -28,6 +28,9 @@ Open the menu bar item to edit Desktop names and notes. Grant Accessibility if
 you want click-to-switch, and Screen Recording if you want preview thumbnails.
 The developer control API is optional and off by default for new installations.
 
+If the menu bar item is hidden, open SpacesUltimate from Applications and use
+**SpacesUltimate → Settings…** or **⌘,**. The editor also has a Preferences button.
+
 ## Reference Takeaways
 
 - FastMissionControl demonstrates that a fast custom Mission Control-style overview can be useful when it avoids Dock internals and keeps layout work lightweight.
