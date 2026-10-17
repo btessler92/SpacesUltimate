@@ -1,0 +1,17 @@
+.build/
+.swiftpm/
+.spacesultimate/
+Resources/SpacesUltimate.iconset/
+.DS_Store
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.log
+.env
+.env.*
+*.p12
+*.p8
+*.key
+*.cer
+*.mobileprovision
+*.provisionprofile

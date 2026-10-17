@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SpacesUltimate Active Space Ground Truth Ranking</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f7f8fb;
+      --panel: #ffffff;
+      --text: #1f2328;
+      --muted: #667085;
+      --line: #d8dee8;
+      --best: #0f766e;
+      --strong: #2563eb;
+      --check: #7c3aed;
+      --weak: #b45309;
+      --last: #b91c1c;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111318;
+        --panel: #191d24;
+        --text: #f3f4f6;
+        --muted: #a3aab8;
+        --line: #303746;
+      }
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+
+    main {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 32px 20px 56px;
+    }
+
+    header {
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 30px;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      max-width: 760px;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 20px 0 0;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--panel);
+      color: var(--text);
+      padding: 8px 12px;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    button:hover {
+      border-color: var(--muted);
+    }
+
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      margin: 18px 0;
+      overflow: hidden;
+    }
+
+    section h2 {
+      margin: 0;
+      padding: 14px 16px;
+      font-size: 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .best h2 { color: var(--best); }
+    .strong h2 { color: var(--strong); }
+    .check h2 { color: var(--check); }
+    .weak h2 { color: var(--weak); }
+    .last h2 { color: var(--last); }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      text-align: left;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .rank {
+      width: 52px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .item {
+      min-width: 210px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 13px;
+    }
+
+    .notes {
+      min-width: 230px;
+      color: var(--muted);
+    }
+
+    [contenteditable="true"] {
+      outline: none;
+      border-radius: 4px;
+    }
+
+    [contenteditable="true"]:focus {
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--strong), transparent 65%);
+      background: color-mix(in srgb, var(--strong), transparent 92%);
+    }
+
+    .global-notes {
+      min-height: 120px;
+      padding: 14px 16px;
+      color: var(--text);
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 8px;
+    }
+
+    .sample-summary {
+      padding: 14px 16px 4px;
+    }
+
+    .sample-summary p {
+      margin: 0 0 10px;
+    }
+
+    .sample-table td,
+    .sample-table th {
+      font-size: 13px;
+    }
+
+    .signal-bad {
+      color: var(--last);
+      font-weight: 600;
+    }
+
+    .signal-good {
+      color: var(--best);
+      font-weight: 600;
+    }
+
+    @media print {
+      body { background: white; color: black; }
+      main { max-width: none; padding: 0; }
+      section { break-inside: avoid; }
+      .toolbar { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>SpacesUltimate Active Space Ground Truth Ranking</h1>
+      <p class="subtitle">
+        Working notes for deciding which macOS/AppKit/Dock signals should drive the menu bar desktop indicator.
+        Edit note cells directly during testing; browser edits are saved locally.
+      </p>
+      <div class="toolbar">
+        <button type="button" id="save">Save browser notes</button>
+        <button type="button" id="clear">Clear browser notes</button>
+        <button type="button" onclick="window.print()">Print / PDF</button>
+      </div>
+      <p class="hint">
+        To permanently change the ranking text, edit this HTML file in the repo. Typed notes are stored in this browser's localStorage.
+      </p>
+    </header>
+
+    <section class="best">
+      <h2>Best Ground Truth</h2>
+      <table>
+        <thead><tr><th class="rank">Rank</th><th>Item</th><th>Description</th><th>Testing Notes</th></tr></thead>
+        <tbody>
+          <tr><td class="rank">1</td><td class="item">Current Space.uuid</td><td>Best signal for which Space is active, but only after matching its Dock monitor record to the correct physical screen.</td><td class="notes" contenteditable="true" data-note="rank-1">May 12, 2026 test: Dock <code>Main</code> Current Space stayed pinned to Desktop 4 while the visible desktop changed. Treat as best only when the monitor record is exactly matched and observed to update.</td></tr>
+          <tr><td class="rank">2</td><td class="item">Display Identifier exact match to displayUUID</td><td>Best way to connect a Dock monitor record to a physical display.</td><td class="notes" contenteditable="true" data-note="rank-2">No exact built-in displayUUID record appeared during this test. Dock exposed the built-in screen as <code>Main</code>, which was not enough.</td></tr>
+          <tr><td class="rank">3</td><td class="item">uuid / stableID</td><td>Best identity for a Space/Desktop. Names and numbers should hang off this ID.</td><td class="notes" contenteditable="true" data-note="rank-3"></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="strong">
+      <h2>Strong Supporting Truth</h2>
+      <table>
+        <thead><tr><th class="rank">Rank</th><th>Item</th><th>Description</th><th>Testing Notes</th></tr></thead>
+        <tbody>
+          <tr><td class="rank">4</td><td class="item">Spaces</td><td>Ordered list of Spaces assigned to a Dock monitor.</td><td class="notes" contenteditable="true" data-note="rank-4"></td></tr>
+          <tr><td class="rank">5</td><td class="item">SpaceMetadata</td><td>SpacesUltimate's saved name, color, icon, shortcuts, and rules once a Space UUID is known.</td><td class="notes" contenteditable="true" data-note="rank-5"></td></tr>
+          <tr><td class="rank">6</td><td class="item">displayUUID</td><td>Physical monitor identity from AppKit/CoreGraphics.</td><td class="notes" contenteditable="true" data-note="rank-6"></td></tr>
+          <tr><td class="rank">7</td><td class="item">NSScreen</td><td>Current connected display object and geometry.</td><td class="notes" contenteditable="true" data-note="rank-7"></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="check">
+      <h2>Useful Cross-Checks</h2>
+      <table>
+        <thead><tr><th class="rank">Rank</th><th>Item</th><th>Description</th><th>Testing Notes</th></tr></thead>
+        <tbody>
+          <tr><td class="rank">8</td><td class="item">Space Properties.windows</td><td>Maps Space UUIDs to window IDs; useful to compare visible windows against Dock's current Space.</td><td class="notes" contenteditable="true" data-note="rank-8">Best moving evidence in the May 12 switch test when the current desktop had regular windows.</td></tr>
+          <tr><td class="rank">9</td><td class="item">CGWindowListCopyWindowInfo</td><td>Lists visible windows and their bounds; useful but not authoritative for active Space state.</td><td class="notes" contenteditable="true" data-note="rank-9">Immediate 350 ms samples often listed many windows from the transition. The 1450 ms samples were much cleaner.</td></tr>
+          <tr><td class="rank">10</td><td class="item">windowMatchedOrderIndex</td><td>Desktop inferred from visible windows; good diagnostic and corroboration signal.</td><td class="notes" contenteditable="true" data-note="rank-10">Tracked Desktop 6, 7, 5, 4, 3, and 2 while Dock stayed at 4. Fails on empty desktops because there is no window evidence.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="weak">
+      <h2>Weak / Risky Sources</h2>
+      <table>
+        <thead><tr><th class="rank">Rank</th><th>Item</th><th>Description</th><th>Testing Notes</th></tr></thead>
+        <tbody>
+          <tr><td class="rank">11</td><td class="item">Display Identifier == "Main"</td><td>Alias rather than a physical display UUID. Use carefully.</td><td class="notes" contenteditable="true" data-note="rank-11">Observed stale on May 12: <code>Main</code> reported Desktop 4 through every switch. Do not trust as active truth by itself.</td></tr>
+          <tr><td class="rank">12</td><td class="item">screenMatch == index fallback</td><td>Monitor matched by array order only. Weak and configuration-sensitive.</td><td class="notes" contenteditable="true" data-note="rank-12"></td></tr>
+          <tr><td class="rank">13</td><td class="item">orderIndex</td><td>SpacesUltimate's displayed Desktop number. Useful label, not raw truth.</td><td class="notes" contenteditable="true" data-note="rank-13"></td></tr>
+          <tr><td class="rank">14</td><td class="item">id64 / ManagedSpaceID</td><td>Numeric macOS Space IDs. Useful diagnostics, less clean than UUID for app identity.</td><td class="notes" contenteditable="true" data-note="rank-14"></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="last">
+      <h2>Last Resort / Not Ground Truth</h2>
+      <table>
+        <thead><tr><th class="rank">Rank</th><th>Item</th><th>Description</th><th>Testing Notes</th></tr></thead>
+        <tbody>
+          <tr><td class="rank">15</td><td class="item">lastKnownActiveOrderIndex</td><td>Saved fallback. Can be stale; should not masquerade as current truth.</td><td class="notes" contenteditable="true" data-note="rank-15">This can inherit the stale Dock answer. It should never decide the menu bar badge when live truth is unavailable.</td></tr>
+          <tr><td class="rank">16</td><td class="item">resolvedOrderIndex</td><td>The app's final answer, not an original source.</td><td class="notes" contenteditable="true" data-note="rank-16"></td></tr>
+          <tr><td class="rank">17</td><td class="item">displayName</td><td>User-facing label. Depends on correct Space identity first.</td><td class="notes" contenteditable="true" data-note="rank-17"></td></tr>
+          <tr><td class="rank">18</td><td class="item">Collapsed Space</td><td>Inactive/old/disconnected display state. Diagnostic only.</td><td class="notes" contenteditable="true" data-note="rank-18"></td></tr>
+          <tr><td class="rank">19</td><td class="item">visibleFrame / frame</td><td>Geometry only. Helps place UI, not identify active Space.</td><td class="notes" contenteditable="true" data-note="rank-19"></td></tr>
+          <tr><td class="rank">20</td><td class="item">windowID / owner / bounds / layer</td><td>Window metadata. Useful for inference/debugging, not active Space truth.</td><td class="notes" contenteditable="true" data-note="rank-20"></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Switch Sampling Notes - Built-in Screen, May 12 2026</h2>
+      <div class="sample-summary">
+        <p>
+          Test setup: one visible built-in Retina display. The installed app reported <code>accessibilityTrusted: false</code>, so <code>/switch?space=N</code> returned <code>ok: false</code>. Switching below used macOS <code>Control+Left/Right</code> via System Events, then sampled <code>/status</code>.
+        </p>
+        <p>
+          Main finding: Dock's <code>Display Identifier == "Main"</code> current-space record stayed pinned to <span class="signal-bad">Desktop 4</span> across the walk. Visible-window matching moved with the visible desktop when windows existed, but it has no answer on empty desktops. That means the current live app can still show stale <code>D4</code> when window evidence is absent.
+        </p>
+      </div>
+      <table class="sample-table">
+        <thead>
+          <tr>
+            <th>Settled Sample</th>
+            <th>Menu Badge</th>
+            <th>Dock <code>Main</code></th>
+            <th>Window Match</th>
+            <th>Final Resolution</th>
+            <th>Source</th>
+            <th>Visible Apps</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Initial</td><td>D6</td><td class="signal-bad">D4</td><td class="signal-good">D6</td><td>D6</td><td>visible-window stale-Dock conflict</td><td>BenCommander, Codex, Preview, Windows App</td></tr>
+          <tr><td>Right 1</td><td>D7</td><td class="signal-bad">D4</td><td class="signal-good">D7</td><td>D7</td><td>visible-window stale-Dock conflict</td><td>Finder</td></tr>
+          <tr><td>Right 2-8</td><td>D7</td><td class="signal-bad">D4</td><td class="signal-good">D7</td><td>D7</td><td>visible-window stale-Dock conflict</td><td>Finder</td></tr>
+          <tr><td>Left 1</td><td>D6</td><td class="signal-bad">D4</td><td class="signal-good">D6</td><td>D6</td><td>visible-window stale-Dock conflict</td><td>BenCommander, Codex, Preview, Windows App</td></tr>
+          <tr><td>Left 2</td><td>D5</td><td class="signal-bad">D4</td><td class="signal-good">D5</td><td>D5</td><td>visible-window stale-Dock conflict</td><td>Finder, Google Chrome</td></tr>
+          <tr><td>Left 3</td><td>D4</td><td>D4</td><td>D4</td><td>D4</td><td>Dock Main agreed with visible windows</td><td>Microsoft Excel</td></tr>
+          <tr><td>Left 4</td><td>D3</td><td class="signal-bad">D4</td><td class="signal-good">D3</td><td>D3</td><td>visible-window stale-Dock conflict</td><td>Google Chrome, Mail, Messages, Microsoft Outlook, Visual Studio Code</td></tr>
+          <tr><td>Left 5</td><td>D2</td><td class="signal-bad">D4</td><td class="signal-good">D2</td><td>D2</td><td>visible-window stale-Dock conflict</td><td>Activity Monitor, Calendar, Finder, Google Chrome, Notes, etc.</td></tr>
+          <tr><td>Left 6-8</td><td class="signal-bad">D4</td><td class="signal-bad">D4</td><td>none</td><td class="signal-bad">D4</td><td>Dock Main fallback, likely stale on an empty desktop</td><td>none</td></tr>
+        </tbody>
+      </table>
+      <div class="sample-summary">
+        <p>
+          Interpretation: <code>Current Space.uuid</code> from the <code>Main</code> Dock record is not the best current source on this machine right now. It looks like a persisted or disconnected monitor state, not a live active Space signal. The cleanest observed live signal was <code>Space Properties.windows</code> plus <code>CGWindowListCopyWindowInfo</code>, but it is inherently incomplete when the active desktop has no normal windows.
+        </p>
+        <p>
+          Next candidate to investigate: another live source for the frontmost Space that does not depend on windows, such as a more current Dock/window-server state source or an accessibility/Mission Control signal. Until then, the menu bar should probably show unknown instead of trusting <code>Main</code> when there is no exact display UUID match and no window match.
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <h2>General Test Notes</h2>
+      <div class="global-notes" contenteditable="true" data-note="global-notes">
+        Add observations here while switching Desktops, moving focus between monitors, opening fullscreen apps, or reconnecting displays.
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const keyPrefix = "spacesultimate-ground-truth-ranking:";
+    const noteEls = [...document.querySelectorAll("[data-note]")];
+
+    function storageKey(el) {
+      return keyPrefix + el.dataset.note;
+    }
+
+    function loadNotes() {
+      for (const el of noteEls) {
+        const value = localStorage.getItem(storageKey(el));
+        if (value !== null) el.innerHTML = value;
+      }
+    }
+
+    function saveNotes() {
+      for (const el of noteEls) {
+        localStorage.setItem(storageKey(el), el.innerHTML);
+      }
+    }
+
+    function clearNotes() {
+      if (!confirm("Clear browser-saved notes for this page?")) return;
+      for (const el of noteEls) {
+        localStorage.removeItem(storageKey(el));
+        if (el.classList.contains("global-notes")) {
+          el.textContent = "";
+        } else {
+          el.textContent = "";
+        }
+      }
+    }
+
+    document.getElementById("save").addEventListener("click", saveNotes);
+    document.getElementById("clear").addEventListener("click", clearNotes);
+    window.addEventListener("beforeunload", saveNotes);
+    noteEls.forEach(el => el.addEventListener("input", saveNotes));
+    loadNotes();
+  </script>
+</body>
+</html>
