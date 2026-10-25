@@ -1,4 +1,4 @@
-.PHONY: build app app-release install package launch quit status smoke smoke-destructive unit-test verify test docs
+.PHONY: build app app-release install package launch quit status smoke unit-test script-test verify test
 
 build:
 	swift build
@@ -15,7 +15,7 @@ install:
 package:
 	./scripts/package_release.sh
 
-launch: app
+launch:
 	./scripts/launch_app.sh
 
 quit:
@@ -27,16 +27,13 @@ status:
 smoke:
 	./scripts/smoke_test_api.sh
 
-smoke-destructive:
-	SPACESULTIMATE_DESTRUCTIVE=1 ./scripts/smoke_test_api.sh
-
 unit-test:
 	swift test
+
+script-test:
+	python3 -m unittest discover -s Tests/Scripts -p 'test_*.py'
 
 verify: app
 	./scripts/verify_app_bundle.sh
 
-test: unit-test build smoke
-
-docs:
-	@printf '%s\n' docs/ARCHITECTURE.md docs/ROADMAP.md docs/TESTING.md docs/CHANGELOG.md
+test: unit-test script-test verify

@@ -85,7 +85,7 @@ final class SpaceStore {
         saveAndNotify()
     }
 
-    func reconcile(with detected: [DetectedSpace]) {
+    func reconcile(with detected: [DetectedSpace], preserveStableIdentity: Bool = false) {
         guard !detected.isEmpty else { return }
 
         let existingSpaces = spaces
@@ -114,7 +114,7 @@ final class SpaceStore {
                 existingByOrder.removeValue(forKey: detectedSpace.orderIndex)
             } else if let stableID = detectedSpace.stableID, let remembered = config.stableSpaceHistory[stableID] {
                 metadata = remembered
-            } else if let matched = existingByOrder.removeValue(forKey: detectedSpace.orderIndex) {
+            } else if !preserveStableIdentity, let matched = existingByOrder.removeValue(forKey: detectedSpace.orderIndex) {
                 metadata = matched
             } else {
                 metadata = SpaceConfig.defaults(spaceCount: detectedSpace.orderIndex).spaces[detectedSpace.orderIndex - 1]

@@ -69,6 +69,7 @@ final class HUDController {
     func show(store: SpaceStore, detector: SpaceDetector, settings: AppSettings) {
         show(settings: settings) { screen in
             let resolution = detector.displayResolution(for: screen)
+            if let fullscreen = resolution.fullscreenSpace { return (fullscreen, fullscreen.orderIndex) }
             let orderIndex = resolution.resolvedOrderIndex ?? store.config.lastKnownActiveOrderIndex
             return (store.space(orderIndex: orderIndex), orderIndex)
         }
@@ -156,7 +157,7 @@ final class HUDView: NSView {
         title.widthAnchor.constraint(equalToConstant: size.width - 40 * scale).isActive = true
         stack.addArrangedSubview(title)
         if settings.hudShowsDesktopNumber {
-            let subtitle = NSTextField(labelWithString: "Desktop \(desktopNumber)")
+            let subtitle = NSTextField(labelWithString: space.isFullscreen ? "Fullscreen app" : "Desktop \(desktopNumber)")
             subtitle.font = .systemFont(ofSize: 18 * scale, weight: .medium)
             subtitle.textColor = .secondaryLabelColor
             stack.addArrangedSubview(subtitle)

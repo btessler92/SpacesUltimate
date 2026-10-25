@@ -22,6 +22,8 @@ jobs:
         run: swift --version
       - name: Unit tests
         run: swift test
+      - name: Script tests
+        run: make script-test
       - name: Release app bundle
         run: make app-release
       - name: Verify app bundle

@@ -285,6 +285,41 @@ final class SpaceStoreReconciliationTests: XCTestCase {
         XCTAssertNoThrow(try JSONDecoder().decode(SpaceConfig.self, from: Data(contentsOf: store.configURL)))
     }
 
+    func testLiveNumberingPreservesNotesAndArchivesFormerFullscreenDesktop() throws {
+        try withTemporaryStore { store in
+            store.reconcile(with: detected("desktop-a", "fullscreen", "desktop-b", "secondary", "moved"))
+            for index in 1...5 {
+                var space = store.space(orderIndex: index)
+                space.name = "Custom \(index)"
+                space.note = "Notes \(index)"
+                space.shortcut = "Control+Option+\(index)"
+                store.update(space)
+            }
+            let settings = store.config.settings
+            store.reconcile(with: detected("desktop-a", "desktop-b", "moved", "secondary"), preserveStableIdentity: true)
+            XCTAssertEqual(store.spaces.map(\.name), ["Custom 1", "Custom 3", "Custom 5", "Custom 4"])
+            XCTAssertEqual(store.spaces.map(\.note), ["Notes 1", "Notes 3", "Notes 5", "Notes 4"])
+            XCTAssertEqual(store.config.stableSpaceHistory["fullscreen"]?.note, "Notes 2")
+            XCTAssertEqual(store.config.settings, settings)
+            XCTAssertEqual(store.spaces[1].shortcut, "Control+Option+3")
+        }
+    }
+
+    func testNewLiveDesktopCannotInheritAnotherStableDesktopsNotes() throws {
+        try withTemporaryStore { store in
+            store.reconcile(with: detected("a", "b"))
+            var b = store.space(orderIndex: 2)
+            b.name = "Research"
+            b.note = "Only belongs to B"
+            store.update(b)
+            store.reconcile(with: detected("a", "new", "b"), preserveStableIdentity: true)
+            XCTAssertEqual(store.space(orderIndex: 2).name, "Desktop 2")
+            XCTAssertEqual(store.space(orderIndex: 2).note, "")
+            XCTAssertEqual(store.space(orderIndex: 3).name, "Research")
+            XCTAssertEqual(store.space(orderIndex: 3).note, "Only belongs to B")
+        }
+    }
+
     private func withTemporaryStore(_ body: (SpaceStore) throws -> Void) throws {
         try withTemporaryConfig(nil, body)
     }

@@ -8,6 +8,10 @@ final class SpaceDetector {
     private var timer: Timer?
     private var observer: NSObjectProtocol?
     private var pendingSpaceChangeRefreshes: [Task<Void, Never>] = []
+    private let liveSpaceReader = LiveSpaceReader()
+    private var liveDisplays: [LiveSpaceReader.Display] = []
+    private var liveInventory: LiveSpaceInventory?
+    private var backedUpLiveInventoryMigration = false
     private(set) var lastSnapshot: SpaceDetectionSnapshot?
 
     var onActiveSpaceChanged: ((SpaceDetectionSnapshot) -> Void)?
@@ -67,8 +71,18 @@ final class SpaceDetector {
     }
 
     func refresh(reason: String = "manual refresh") {
-        let dockSnapshot = readDockSpaces()
+        liveDisplays = liveSpaceReader.read()
+        if let inventory = LiveSpaceInventory(displays: liveDisplays) {
+            // Never accept a partial monitor inventory during a display reconfiguration.
+            let screenIDs = Set(NSScreen.screens.compactMap(Self.displayUUIDString(for:)).map { $0.lowercased() })
+            let liveIDs = Set(inventory.displays.map { $0.identifier.lowercased() })
+            if screenIDs == liveIDs || (!NSScreen.screensHaveSeparateSpaces && inventory.displays.count == 1) {
+                liveInventory = inventory
+            }
+        }
+        let dockSnapshot = liveInventory.map(liveSnapshot) ?? readDockSpaces()
         let detectedSpaces = dockSnapshot.spaces
+        let resolvedSpaces = detectedSpaces.isEmpty ? fallbackSpaces() : detectedSpaces
         let visibleWindowIDs = currentScreenWindowIDs()
         let windowMatch = SpaceDetectionResolver.visibleWindowMatch(
             in: dockSnapshot.resolverSnapshot,
@@ -76,15 +90,24 @@ final class SpaceDetector {
         )
         let windowMatchedActive = windowMatch.orderIndex
         let dockActive = SpaceDetectionResolver.activeOrderIndex(from: dockSnapshot.resolverSnapshot)
-        let active = dockActive ?? windowMatchedActive ?? inferActiveSpace(maxCount: max(detectedSpaces.count, store.spaces.count))
+        let liveStableID = liveCurrentStableID(for: NSScreen.main ?? NSScreen.screens.first)
+        let active: Int?
+        if let liveStableID {
+            active = resolvedSpaces.first { $0.stableID == liveStableID }?.orderIndex
+        } else {
+            active = dockActive ?? windowMatchedActive ?? inferActiveSpace(maxCount: max(detectedSpaces.count, store.spaces.count))
+        }
         let displayResolutions = displayResolutions(dockSnapshot: dockSnapshot)
-        let source = SpaceDetectionResolver.detectionSource(
+        let isFullscreen = liveInventory?.fullscreenCard(stableID: liveStableID) != nil
+        let source = isFullscreen ? "live macOS fullscreen app Space" : liveStableID != nil
+            ? (active == nil ? "live macOS Space not in detected Desktop list" : "live macOS current Space UUID")
+            : SpaceDetectionResolver.detectionSource(
             hasDetectedSpaces: !detectedSpaces.isEmpty,
             hasDockActiveSpace: dockActive != nil,
             hasWindowMatchedActiveSpace: windowMatchedActive != nil
         )
         let snapshot = SpaceDetectionSnapshot(
-            spaces: detectedSpaces.isEmpty ? fallbackSpaces() : detectedSpaces,
+            spaces: resolvedSpaces,
             activeOrderIndex: active,
             displaySnapshots: dockSnapshot.displaySnapshots,
             displayResolutions: displayResolutions,
@@ -101,7 +124,13 @@ final class SpaceDetector {
             )
         )
 
-        store.reconcile(with: snapshot.spaces)
+        if liveInventory != nil, !backedUpLiveInventoryMigration {
+            if store.spaces.map(\.stableID) != snapshot.spaces.map(\.stableID) {
+                store.createBackup(reason: "before-live-desktop-numbering")
+            }
+            backedUpLiveInventoryMigration = true
+        }
+        store.reconcile(with: snapshot.spaces, preserveStableIdentity: liveInventory != nil)
         if let active {
             store.setActiveOrderIndex(active)
         }
@@ -156,7 +185,7 @@ final class SpaceDetector {
         if resolution.displayID == nil {
             resolution.displayID = Self.displayID(for: screen)
         }
-        return (screen, resolution)
+        return (screen, applyingLiveSpace(to: resolution, for: screen, spaces: snapshot.spaces))
     }
 
     func mainDisplayStatus() -> (screen: NSScreen?, resolution: SpaceDisplayResolution) {
@@ -177,7 +206,7 @@ final class SpaceDetector {
             if resolution.displayID == nil {
                 resolution.displayID = Self.displayID(for: screen)
             }
-            return (screen, resolution)
+            return (screen, applyingLiveSpace(to: resolution, for: screen, spaces: snapshot.spaces))
         }
 
         let resolution = displayResolution(for: screen)
@@ -233,7 +262,7 @@ final class SpaceDetector {
         if resolution.displayID == nil {
             resolution.displayID = Self.displayID(for: screen)
         }
-        return resolution
+        return applyingLiveSpace(to: resolution, for: screen, spaces: snapshot.spaces)
     }
 
     func notesOverlayDisplaySummaries() -> [NotesOverlayDisplaySummary] {
@@ -241,6 +270,13 @@ final class SpaceDetector {
     }
 
     func notesOverlayDisplaySummary(for screen: NSScreen) -> NotesOverlayDisplaySummary {
+        if let inventory = liveInventory,
+           let display = liveDisplay(for: screen, in: inventory.displays) {
+            return NotesOverlayDisplaySummary(screenName: screen.localizedName,
+                displayID: Self.displayID(for: screen), screenMatch: "exact-display-uuid",
+                source: "live macOS display Spaces", fallbackUsed: false,
+                spaces: inventory.cards(for: display, savedSpaces: store.spaces))
+        }
         let resolvedOrderIndex = displayResolution(for: screen).resolvedOrderIndex
         let fallback = NotesOverlayDisplaySummary(
             screenName: screen.localizedName,
@@ -323,8 +359,53 @@ final class SpaceDetector {
             if resolution.displayID == nil {
                 resolution.displayID = Self.displayID(for: screen)
             }
-            return resolution
+            return applyingLiveSpace(to: resolution, for: screen,
+                                     spaces: dockSnapshot.spaces.isEmpty ? fallbackSpaces() : dockSnapshot.spaces)
         }
+    }
+
+    private func liveCurrentStableID(for screen: NSScreen?) -> String? {
+        LiveSpaceReader.currentStableID(
+            for: screen.flatMap(Self.displayUUIDString(for:)),
+            separateSpaces: NSScreen.screensHaveSeparateSpaces,
+            in: liveDisplays
+        )
+    }
+
+    private func applyingLiveSpace(
+        to fallback: SpaceDisplayResolution,
+        for screen: NSScreen,
+        spaces: [DetectedSpace]
+    ) -> SpaceDisplayResolution {
+        let stableID = liveCurrentStableID(for: screen)
+        return SpaceDetectionResolver.applyingLiveSpace(stableID, spaces: spaces, to: fallback,
+            fullscreenSpace: liveInventory?.fullscreenCard(stableID: stableID))
+    }
+
+    private func liveDisplay(for screen: NSScreen, in displays: [LiveSpaceReader.Display]) -> LiveSpaceReader.Display? {
+        if let uuid = Self.displayUUIDString(for: screen),
+           let display = displays.first(where: { $0.identifier.caseInsensitiveCompare(uuid) == .orderedSame }) {
+            return display
+        }
+        return !NSScreen.screensHaveSeparateSpaces && displays.count == 1 ? displays.first : nil
+    }
+
+    private func liveSnapshot(_ inventory: LiveSpaceInventory) -> DockSpaceSnapshot {
+        let displays = inventory.displays.enumerated().map { index, display in
+            let match = Self.screenMatch(forDisplayIdentifier: display.identifier, monitorIndex: index)
+            let ids = Set((display.spaces ?? []).map(\.stableID))
+            let desktops = inventory.desktops.filter { $0.stableID.map(ids.contains) ?? false }
+            return DisplaySpaceSnapshot(displayIdentifier: display.identifier,
+                displayID: match.screen.flatMap(Self.displayID(for:)), screenName: match.screen?.localizedName,
+                frame: match.screen?.frame, screenMatch: match.confidence, spaces: desktops,
+                currentStableID: display.currentStableID,
+                activeOrderIndex: desktops.first { $0.stableID == display.currentStableID }?.orderIndex,
+                source: "live macOS display Spaces")
+        }
+        return DockSpaceSnapshot(spaces: inventory.desktops, displaySnapshots: displays,
+            currentStableID: inventory.displays.first?.currentStableID,
+            currentStableIDs: inventory.displays.map(\.currentStableID),
+            monitorCount: displays.count, spaceWindowIDs: readSpaceWindowIDsFromPreferences())
     }
 
     private func builtInDisplaySnapshot(for screen: NSScreen, in displays: [DisplaySpaceSnapshot]) -> DisplaySpaceSnapshot? {
@@ -641,12 +722,20 @@ final class SpaceDetector {
         if visibleWindowIDCount == 0 {
             notes.append("No eligible on-screen app windows were available for CGWindow matching.")
         }
-        if active == nil {
-            notes.append("No active Space could be inferred from public APIs.")
+        if active == nil && source != "live macOS fullscreen app Space" {
+            notes.append("No active Space could be matched to the detected Desktop list.")
+        }
+        if source == "live macOS current Space UUID", dockActive != active {
+            notes.append("Live macOS Space identity overrides stale Dock preference state.")
+        }
+        if source == "live macOS current Space UUID", let windowActive = windowMatch.orderIndex, windowActive != active {
+            notes.append("Live macOS Space identity overrides stale window-to-Space assignments.")
         }
 
         let confidence: DetectionConfidence
-        if dockActive != nil {
+        if source.hasPrefix("live macOS") {
+            confidence = active != nil || source == "live macOS fullscreen app Space" ? .high : .fallback
+        } else if dockActive != nil {
             confidence = .high
         } else if windowMatch.orderIndex != nil {
             confidence = .medium
