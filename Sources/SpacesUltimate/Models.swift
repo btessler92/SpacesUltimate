@@ -12,8 +12,11 @@ struct SpaceMetadata: Codable, Identifiable, Equatable {
     var shortcut: String
     var assignedApps: [String]
 
+    // Only transient fullscreen overlay/menu cards have a negative key.
+    var isFullscreen: Bool { orderIndex < 0 }
+
     var desktopLabel: String {
-        "Desktop \(orderIndex)"
+        isFullscreen ? "Fullscreen app" : "Desktop \(orderIndex)"
     }
 
     var displayName: String {
@@ -73,6 +76,8 @@ struct SpaceConfig: Codable, Equatable {
     var spaces: [SpaceMetadata]
     var stableSpaceHistory: [String: SpaceMetadata]
     var lastKnownActiveOrderIndex: Int
+    // Legacy config fields retained for lossless import/export. Runtime shortcuts
+    // now live in AppSettings; no experimental switching mode is implemented.
     var overviewShortcut: String
     var riskyMethodsEnabled: Bool
     var settings: AppSettings
@@ -466,6 +471,7 @@ struct SpaceDisplayResolution: Equatable {
     var dockResolvedOrderIndex: Int?
     var windowMatchedOrderIndex: Int?
     var windowMatchCandidates: [SpaceWindowMatch]
+    var fullscreenSpace: SpaceMetadata? = nil
 }
 
 struct NotesOverlayDisplaySummary: Equatable {

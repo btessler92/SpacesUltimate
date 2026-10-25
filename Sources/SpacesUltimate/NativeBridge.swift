@@ -5,6 +5,7 @@ import Foundation
 
 @MainActor
 final class NativeBridge {
+    private let liveSpaceReader = LiveSpaceReader()
     private(set) var lastSwitchAttempt = "No switch attempted yet"
 
     func switchToSpace(_ space: SpaceMetadata, from currentOrderIndex: Int? = nil) -> Bool {
@@ -31,6 +32,24 @@ final class NativeBridge {
                 AppLog.shared.warning(lastSwitchAttempt)
             }
             return success
+        }
+
+        // A fullscreen Space occupies an arrow-key step but has no Desktop number.
+        // Read at the moment of navigation so reordering cannot leave stale offsets.
+        if let stableID = space.stableID,
+           let inventory = LiveSpaceInventory(displays: liveSpaceReader.read()) {
+            guard let offset = inventory.relativeOffset(to: stableID) else {
+                lastSwitchAttempt = "This Space is no longer present. Refresh Spaces and try again."
+                return false
+            }
+            let success = sendRelativeSpaceMove(offset)
+            lastSwitchAttempt = success ? "Navigated \(abs(offset)) Space step(s) toward \(space.displayName)."
+                : "Could not create Space-switch keyboard events."
+            return success
+        }
+        guard !space.isFullscreen else {
+            lastSwitchAttempt = "Live fullscreen Space ordering is unavailable. Try again after refreshing Spaces."
+            return false
         }
 
         if let currentOrderIndex, currentOrderIndex == space.orderIndex {

@@ -24,10 +24,24 @@ struct NotesLayoutPreviews {
         _ = NSApplication.shared
         var spacesWithNotes = config.spaces
         for index in spacesWithNotes.indices { spacesWithNotes[index].note = "Reference notes for this Desktop" }
+        var withFullscreen = config.spaces
+        withFullscreen.insert(SpaceMetadata(id: "fullscreen-preview", stableID: "fullscreen-preview",
+            orderIndex: -1, name: "Windows App", colorHex: "#778899", icon: "", shortcut: "", assignedApps: []),
+            at: min(4, withFullscreen.count))
+        var longNames = withFullscreen
+        for index in longNames.indices where !longNames[index].isFullscreen {
+            longNames[index].name = "Longer Desktop project title"
+        }
+        var secondary = SpaceConfig.defaults(spaceCount: 17).spaces[16]
+        secondary.name = "Desktop 17"
         let height = config.settings.notesOverlayHeightPixels
         let scenarios: [(String, CGFloat, [SpaceMetadata], Double)] = [
             ("laptop", 1728, config.spaces, height),
             ("wide-display", 2560, config.spaces, height),
+            ("wide-fullscreen", 2560, withFullscreen, height),
+            ("ultrawide-fullscreen", 3840, withFullscreen, height),
+            ("secondary-single-desktop", 1080, [secondary], height),
+            ("wide-two-rows", 2560, longNames, height),
             ("compact-display", 1280, config.spaces, height),
             ("few-desktops", 1728, Array(config.spaces.prefix(4)), height),
             ("minimum-height-notes", 1728, spacesWithNotes, AppSettings.minimumNotesOverlayHeightPixels),

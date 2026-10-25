@@ -7,6 +7,7 @@ final class InlineEditableNameField: NSTextField, NSTextFieldDelegate {
     private let fallbackName: String
     private var displayColor: NSColor?
     private var isEditingName = false
+    var allowsNameEditing = true
     var onBeginEditing: (() -> Void)?
     var onSingleClick: (() -> Void)?
 
@@ -59,7 +60,7 @@ final class InlineEditableNameField: NSTextField, NSTextFieldDelegate {
     }
 
     private func beginNameEditing() {
-        guard !isEditingName else { return }
+        guard allowsNameEditing, !isEditingName else { return }
         isEditingName = true
         onBeginEditing?()
         displayColor = textColor

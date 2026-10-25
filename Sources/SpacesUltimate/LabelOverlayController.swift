@@ -6,6 +6,8 @@ final class LabelOverlayController {
     private let detector: SpaceDetector
     private let bridge: NativeBridge
     private var panels: [LabelOverlayPanelContext] = []
+    private var renderedDisplayCards: [[SpaceMetadata]] = []
+    private var renderedDisplayFrames: [NSRect] = []
     private var renderedPresentation: NotesOverlayPresentationFingerprint?
     var retainsNotesForAppMousePress: (NSPoint, Int, NSWindow?) -> Bool = { _, _, _ in false }
     private var dismissWorkItem: DispatchWorkItem?
@@ -106,7 +108,7 @@ final class LabelOverlayController {
             panel.isReleasedWhenClosed = false
             panel.contentView = LabelOverlayView(
                 spaces: summary.spaces,
-                activeIndex: resolution.resolvedOrderIndex ?? store.config.lastKnownActiveOrderIndex,
+                activeIndex: resolution.fullscreenSpace?.orderIndex ?? resolution.resolvedOrderIndex ?? store.config.lastKnownActiveOrderIndex,
                 itemOpacity: store.config.settings.notesOverlayItemOpacity,
                 backgroundOpacity: store.config.settings.notesOverlayBackgroundOpacity,
                 screenFrame: NSRect(origin: .zero, size: frame.size),
@@ -133,6 +135,8 @@ final class LabelOverlayController {
         lastHighlightUpdateReason = detector.lastSnapshot?.eventDescription ?? "overlay shown"
         lastHighlightUpdateDate = Date()
         renderedPresentation = NotesOverlayPresentationFingerprint(config: store.config)
+        renderedDisplayCards = detector.notesOverlayDisplaySummaries().map(\.spaces)
+        renderedDisplayFrames = NSScreen.screens.map(\.visibleFrame)
     }
 
     func missionControlDidClose() {
@@ -174,7 +178,9 @@ final class LabelOverlayController {
     func reloadIfVisible() {
         guard !panels.isEmpty else { return }
         let next = NotesOverlayPresentationFingerprint(config: store.config)
-        if let renderedPresentation, renderedPresentation.spaces == next.spaces,
+        if renderedDisplayCards == detector.notesOverlayDisplaySummaries().map(\.spaces),
+           renderedDisplayFrames == NSScreen.screens.map(\.visibleFrame),
+           let renderedPresentation, renderedPresentation.spaces == next.spaces,
            renderedPresentation.heightPixels == next.heightPixels {
             // Slider drags update the existing views, preserving focus and avoiding flicker.
             for context in panels {
@@ -200,6 +206,11 @@ final class LabelOverlayController {
 
     func refreshActiveHighlights(reason: String) {
         guard !panels.isEmpty else { return }
+        if renderedDisplayCards != detector.notesOverlayDisplaySummaries().map(\.spaces)
+            || renderedDisplayFrames != NSScreen.screens.map(\.visibleFrame) {
+            reloadIfVisible()
+            return
+        }
         var changedPanels: [String] = []
         for panelIndex in panels.indices {
             let context = panels[panelIndex]
@@ -209,7 +220,7 @@ final class LabelOverlayController {
             }
             let activeOrderIndex = panels[panelIndex].highlightPolicy.nextActiveIndex(
                 current: view.activeIndex,
-                resolved: resolution.resolvedOrderIndex
+                resolved: resolution.fullscreenSpace?.orderIndex ?? resolution.resolvedOrderIndex
             )
             guard view.updateActiveIndex(activeOrderIndex) else {
                 continue

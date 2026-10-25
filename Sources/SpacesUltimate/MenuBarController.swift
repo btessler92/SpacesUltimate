@@ -270,14 +270,14 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         let displayStatus = detector.mainDisplayStatus()
         let screen = displayStatus.screen
         let resolution = displayStatus.resolution
-        let space = resolution.resolvedOrderIndex.map { store.space(orderIndex: $0) }
+        let space = resolution.fullscreenSpace ?? resolution.resolvedOrderIndex.map { store.space(orderIndex: $0) }
             ?? store.space(orderIndex: store.config.lastKnownActiveOrderIndex)
         return MenuBarActiveStatus(screen: screen, resolution: resolution, space: space)
     }
 
     private func activeStatusForMainDisplay() -> MenuBarActiveStatus {
         let displayStatus = detector.mainDisplayStatus()
-        let space = displayStatus.resolution.resolvedOrderIndex.map { store.space(orderIndex: $0) }
+        let space = displayStatus.resolution.fullscreenSpace ?? displayStatus.resolution.resolvedOrderIndex.map { store.space(orderIndex: $0) }
             ?? store.space(orderIndex: store.config.lastKnownActiveOrderIndex)
         return MenuBarActiveStatus(screen: displayStatus.screen, resolution: displayStatus.resolution, space: space)
     }
@@ -367,7 +367,7 @@ enum MenuBarStatusContent {
 
     static func badgeText(for space: SpaceMetadata?) -> String {
         guard let space else { return "?" }
-        return "D\(space.orderIndex)"
+        return space.isFullscreen ? "⛶" : "D\(space.orderIndex)"
     }
 
     static func badgeSize(for space: SpaceMetadata?) -> NSSize {

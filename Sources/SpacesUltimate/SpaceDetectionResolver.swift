@@ -1,6 +1,31 @@
 import Foundation
 
 enum SpaceDetectionResolver {
+    /// Live identity does not depend on which windows happen to be on a Desktop.
+    /// Resolve regular Desktop numbers separately from transient fullscreen cards.
+    static func applyingLiveSpace(
+        _ stableID: String?,
+        spaces: [DetectedSpace],
+        to fallback: SpaceDisplayResolution,
+        fullscreenSpace: SpaceMetadata? = nil
+    ) -> SpaceDisplayResolution {
+        guard let stableID else { return fallback }
+        var resolution = fallback
+        resolution.fullscreenSpace = fullscreenSpace
+        if fullscreenSpace != nil {
+            resolution.resolvedOrderIndex = nil
+            resolution.source = "live macOS fullscreen app Space"
+            resolution.confidence = .high
+            return resolution
+        }
+        resolution.resolvedOrderIndex = spaces.first { $0.stableID == stableID }?.orderIndex
+        resolution.source = resolution.resolvedOrderIndex == nil
+            ? "live macOS Space not in detected Desktop list"
+            : "live macOS current Space UUID"
+        resolution.confidence = resolution.resolvedOrderIndex == nil ? .fallback : .high
+        return resolution
+    }
+
     struct DockSnapshot: Equatable {
         var spaces: [DetectedSpace]
         var currentStableID: String?

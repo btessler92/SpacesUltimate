@@ -102,12 +102,12 @@ final class DiagnosticsService {
             "accessibilityTrusted": scanner.isAccessibilityTrusted,
             "screenCaptureTrusted": screenshotService.isScreenCaptureTrusted,
             "lastSwitchAttempt": bridge.lastSwitchAttempt,
-            "loginItem": loginItemPayload(),
-            "rules": ruleSuggestionPayload(ruleEngine.snapshot()),
+            "loginItem": DiagnosticsPayload.loginItem(loginItemController.state),
+            "rules": DiagnosticsPayload.rules(ruleEngine.snapshot()),
             "previews": previewService.previewPayload(),
             "settings": settingsPayload(store.config.settings),
-            "spaces": store.spaces.map(spacePayload),
-            "spaceNameBindings": store.nameBindingSummaries().map(nameBindingPayload),
+            "spaces": store.spaces.map(DiagnosticsPayload.space),
+            "spaceNameBindings": store.nameBindingSummaries().map(DiagnosticsPayload.nameBinding),
             "visibleWindows": scanner.scanVisibleWindows().prefix(60).map(windowPayload),
             "recentLogs": Array(AppLog.shared.recentMessages.suffix(200))
         ]
@@ -140,53 +140,8 @@ final class DiagnosticsService {
         AppIdentity.payload()
     }
 
-    private func spacePayload(_ space: SpaceMetadata) -> [String: Any] {
-        [
-            "id": space.id,
-            "stableID": space.stableID ?? NSNull(),
-            "orderIndex": space.orderIndex,
-            "desktopLabel": space.desktopLabel,
-            "name": space.displayName,
-            "rawName": space.name,
-            "color": space.colorHex,
-            "icon": space.icon,
-            "note": space.note,
-            "shortcut": space.shortcut,
-            "assignedApps": space.assignedApps
-        ]
-    }
-
-    private func nameBindingPayload(_ binding: SpaceNameBindingSummary) -> [String: Any] {
-        [
-            "orderIndex": binding.orderIndex,
-            "displayName": binding.displayName,
-            "stableID": binding.stableID ?? NSNull(),
-            "mode": binding.mode.rawValue,
-            "modeLabel": binding.mode.label,
-            "rememberedStableIDCount": binding.rememberedStableIDCount,
-            "repairCandidateName": binding.repairCandidateName ?? NSNull()
-        ]
-    }
-
     private func settingsPayload(_ settings: AppSettings) -> [String: Any] {
-        [
-            "hudEnabled": settings.hudEnabled,
-            "hudDurationSeconds": settings.hudDurationSeconds,
-            "apiEnabled": settings.apiEnabled,
-            "globalHotkeyEnabled": settings.globalHotkeyEnabled,
-            "globalHotkeyShortcut": settings.globalHotkeyShortcut,
-            "notesOverlayHotkeyEnabled": settings.notesOverlayHotkeyEnabled,
-            "notesOverlayHotkeyShortcut": settings.notesOverlayHotkeyShortcut,
-            "notesOverlayItemOpacity": settings.notesOverlayItemOpacity,
-            "notesOverlayBackgroundOpacity": settings.notesOverlayBackgroundOpacity,
-            "notesOverlayHeightPixels": settings.notesOverlayHeightPixels,
-            "autoLaunchAssignedApps": settings.autoLaunchAssignedApps,
-            "onboardingCompleted": settings.onboardingCompleted,
-            "screenshotDirectoryPath": settings.screenshotDirectoryPath,
-            "effectiveScreenshotDirectory": screenshotService.screenshotsDirectory.path,
-            "menuBarDisplayMode": settings.menuBarDisplayMode.rawValue,
-            "menuBarLabelPosition": settings.menuBarLabelPosition.rawValue
-        ]
+        settings.diagnosticPayload(defaultScreenshotsDirectory: screenshotService.defaultScreenshotsDirectory)
     }
 
     private func windowPayload(_ window: ScannedWindow) -> [String: Any] {
@@ -200,19 +155,6 @@ final class DiagnosticsService {
                 "width": window.bounds.width,
                 "height": window.bounds.height
             ]
-        ]
-    }
-
-    private func loginItemPayload() -> [String: Any] {
-        let state = loginItemController.state
-        return [
-            "supported": state.supported,
-            "enabled": state.enabled,
-            "status": state.status,
-            "canRegister": state.canRegister,
-            "requiresUserApproval": state.requiresUserApproval,
-            "recoverySuggestion": state.recoverySuggestion,
-            "bundlePath": state.bundlePath
         ]
     }
 
@@ -235,7 +177,7 @@ final class DiagnosticsService {
             "spaceCount": snapshot.spaces.count,
             "displays": snapshot.displaySnapshots.map(displayDetectionPayload),
             "displayResolutions": snapshot.displayResolutions.map(displayResolutionPayload),
-            "details": detectionDetailsPayload(snapshot.diagnostics)
+            "details": DiagnosticsPayload.detectionDetails(snapshot.diagnostics)
         ]
     }
 
@@ -273,7 +215,9 @@ final class DiagnosticsService {
             "screenMatch": resolution.screenMatch,
             "resolvedOrderIndex": resolution.resolvedOrderIndex ?? NSNull(),
             "resolvedDesktopLabel": resolution.resolvedOrderIndex.map { "Desktop \($0)" } ?? NSNull(),
-            "resolvedName": resolution.resolvedOrderIndex.map { store.space(orderIndex: $0).displayName } ?? NSNull(),
+            "fullscreenAppName": resolution.fullscreenSpace?.displayName ?? NSNull(),
+            "fullscreenStableID": resolution.fullscreenSpace?.stableID ?? NSNull(),
+            "resolvedName": resolution.fullscreenSpace?.displayName ?? resolution.resolvedOrderIndex.map { store.space(orderIndex: $0).displayName } ?? NSNull(),
             "source": resolution.source,
             "confidence": resolution.confidence.rawValue,
             "visibleWindowIDCount": resolution.visibleWindowIDCount,
@@ -282,7 +226,7 @@ final class DiagnosticsService {
             "dockCurrentStableID": resolution.dockCurrentStableID ?? NSNull(),
             "dockResolvedOrderIndex": resolution.dockResolvedOrderIndex ?? NSNull(),
             "windowMatchedOrderIndex": resolution.windowMatchedOrderIndex ?? NSNull(),
-            "windowMatchCandidates": resolution.windowMatchCandidates.map(windowMatchPayload)
+            "windowMatchCandidates": resolution.windowMatchCandidates.map(DiagnosticsPayload.windowMatch)
         ]
     }
 
@@ -318,7 +262,7 @@ final class DiagnosticsService {
                 "source": resolution.source,
                 "confidence": resolution.confidence.rawValue,
                 "visibleWindowIDCount": resolution.visibleWindowIDCount,
-                "windowMatchCandidates": resolution.windowMatchCandidates.map(windowMatchPayload)
+                "windowMatchCandidates": resolution.windowMatchCandidates.map(DiagnosticsPayload.windowMatch)
             ]
         }
     }
@@ -378,49 +322,6 @@ final class DiagnosticsService {
             "y": rect.origin.y,
             "width": rect.width,
             "height": rect.height
-        ]
-    }
-
-    private func detectionDetailsPayload(_ details: SpaceDetectionDiagnostics) -> [String: Any] {
-        [
-            "confidence": details.confidence.rawValue,
-            "dockSpaceCount": details.dockSpaceCount,
-            "dockMonitorCount": details.dockMonitorCount,
-            "dockCurrentStableID": details.dockCurrentStableID ?? NSNull(),
-            "dockCurrentStableIDs": details.dockCurrentStableIDs,
-            "dockActiveOrderIndex": details.dockActiveOrderIndex ?? NSNull(),
-            "visibleWindowIDCount": details.visibleWindowIDCount,
-            "uniqueVisibleWindowIDCount": details.uniqueVisibleWindowIDCount,
-            "ignoredSharedVisibleWindowIDCount": details.ignoredSharedVisibleWindowIDCount,
-            "spaceWindowPropertyCount": details.spaceWindowPropertyCount,
-            "windowMatchedOrderIndex": details.windowMatchedOrderIndex ?? NSNull(),
-            "windowMatchCandidates": details.windowMatchCandidates.map(windowMatchPayload),
-            "notes": details.notes
-        ]
-    }
-
-    private func windowMatchPayload(_ match: SpaceWindowMatch) -> [String: Any] {
-        [
-            "stableID": match.stableID,
-            "orderIndex": match.orderIndex,
-            "matchedVisibleWindowCount": match.matchedVisibleWindowCount,
-            "knownWindowCount": match.knownWindowCount
-        ]
-    }
-
-    private func ruleSuggestionPayload(_ snapshot: RuleSuggestionSnapshot) -> [String: Any] {
-        [
-            "generatedAt": Self.isoTimestamp.string(from: snapshot.generatedAt),
-            "matches": snapshot.matches.map { match in
-                [
-                    "app": match.appName,
-                    "space": match.spaceOrderIndex,
-                    "spaceName": match.spaceName,
-                    "windowCount": match.windowCount
-                ]
-            },
-            "unassignedVisibleApps": snapshot.unassignedVisibleApps,
-            "duplicateAssignments": snapshot.duplicateAssignments
         ]
     }
 

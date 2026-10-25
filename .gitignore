@@ -15,3 +15,5 @@ Resources/SpacesUltimate.iconset/
 *.cer
 *.mobileprovision
 *.provisionprofile
+
+__pycache__/

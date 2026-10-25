@@ -5,7 +5,7 @@ import AppKit
 struct NotesOverlayLayout {
     static let horizontalInsets: CGFloat = 24
     static let cardSpacing: CGFloat = 10
-    static let maximumCardWidth: CGFloat = 188
+    static let fontReferenceCardWidth: CGFloat = 188
     static let closeButtonWidth: CGFloat = 42
     static let closeButtonSpacing: CGFloat = 8
     static let verticalInsets: CGFloat = 12
@@ -38,7 +38,7 @@ struct NotesOverlayLayout {
         let staggeredSlots = max(CGFloat((count + 1) / 2), CGFloat(count / 2) + 0.5)
         let navigationWidth = Self.navigationButtonSize + Self.navigationButtonSpacing
         let doubleWidth = Self.cardWidth(cardAreaWidth: area - staggeredSlots * navigationWidth, slots: staggeredSlots)
-        let chosenRowCount = count > 1 && minimumFraction < 0.5 && doubleWidth > singleWidth ? 2 : 1
+        let chosenRowCount = count > 1 && singleWidth < Self.fontReferenceCardWidth && minimumFraction < 0.5 && doubleWidth > singleWidth ? 2 : 1
         rowCount = chosenRowCount
         labelWidth = chosenRowCount == 2 ? doubleWidth : singleWidth
         minimumSingleRowNameFraction = minimumFraction
@@ -49,10 +49,7 @@ struct NotesOverlayLayout {
 
     static func panelWidth(visibleWidth: CGFloat, spaceCount: Int) -> CGFloat {
         let available = max(1, visibleWidth - 32)
-        let count = max(1, spaceCount)
-        let preferred = horizontalInsets + closeButtonWidth + closeButtonSpacing
-            + CGFloat(count) * maximumCardWidth + CGFloat(count - 1) * cardSpacing
-        return min(max(min(available, 360), preferred), available)
+        return available
     }
 
     func panelFrame(visibleFrame: NSRect, width: CGFloat, baseHeight: Double) -> NSRect {
@@ -78,7 +75,7 @@ struct NotesOverlayLayout {
     }
 
     static func scaledFontSize(cardWidth: CGFloat, minimum: CGFloat, maximum: CGFloat) -> CGFloat {
-        let progress = max(0, min(1, (cardWidth - 80) / (maximumCardWidth - 80)))
+        let progress = max(0, min(1, (cardWidth - 80) / (fontReferenceCardWidth - 80)))
         return minimum + (maximum - minimum) * progress
     }
 
@@ -114,6 +111,6 @@ struct NotesOverlayLayout {
     }
 
     private static func cardWidth(cardAreaWidth: CGFloat, slots: CGFloat) -> CGFloat {
-        max(1, min(maximumCardWidth, floor((cardAreaWidth - (slots - 1) * cardSpacing) / slots)))
+        max(1, floor((cardAreaWidth - (slots - 1) * cardSpacing) / slots))
     }
 }

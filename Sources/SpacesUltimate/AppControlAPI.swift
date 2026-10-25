@@ -162,7 +162,7 @@ final class AppControlAPI {
         case "/hud":
             let space = requestedSpace(components) ?? store.space(orderIndex: store.config.lastKnownActiveOrderIndex)
             showHUD(space)
-            return response(body: ["ok": true, "shown": spacePayload(space)])
+            return response(body: ["ok": true, "shown": DiagnosticsPayload.space(space)])
         case "/overview/show":
             showOverview()
             return response(body: ["ok": true, "overview": "shown"])
@@ -217,7 +217,7 @@ final class AppControlAPI {
             }
             applyConfigUpdate(to: &space, components: components)
             store.update(space)
-            return response(body: ["ok": true, "updated": spacePayload(space)])
+            return response(body: ["ok": true, "updated": DiagnosticsPayload.space(space)])
         case "/config/reset":
             store.resetNames()
             return response(body: statusPayload(extra: ["ok": true, "reset": true]))
@@ -236,14 +236,14 @@ final class AppControlAPI {
                 return response(status: "500 Internal Server Error", body: ["ok": false, "error": error.localizedDescription, "backups": backupPayload()])
             }
         case "/config/name-bindings":
-            return response(body: ["ok": true, "bindings": store.nameBindingSummaries().map(nameBindingPayload)])
+            return response(body: ["ok": true, "bindings": store.nameBindingSummaries().map(DiagnosticsPayload.nameBinding)])
         case "/config/repair-names":
             let repaired = store.repairOrderFallbackNamesFromHistory()
             return response(body: [
                 "ok": true,
                 "repaired": repaired.map { ["space": $0.key, "name": $0.value] }.sorted { ($0["space"] as? Int ?? 0) < ($1["space"] as? Int ?? 0) },
-                "bindings": store.nameBindingSummaries().map(nameBindingPayload),
-                "spaces": store.spaces.map(spacePayload)
+                "bindings": store.nameBindingSummaries().map(DiagnosticsPayload.nameBinding),
+                "spaces": store.spaces.map(DiagnosticsPayload.space)
             ])
         case "/permissions/accessibility":
             scanner.requestAccessibilityIfNeeded()
@@ -252,15 +252,15 @@ final class AppControlAPI {
             let trusted = screenshotService.requestScreenCaptureIfNeeded()
             return response(body: ["ok": trusted, "screenCaptureTrusted": screenshotService.isScreenCaptureTrusted])
         case "/login-item/status":
-            return response(body: ["ok": true, "loginItem": loginItemPayload()])
+            return response(body: ["ok": true, "loginItem": DiagnosticsPayload.loginItem(loginItemController.state)])
         case "/rules/suggestions":
-            return response(body: ["ok": true, "rules": ruleSuggestionPayload(ruleEngine.snapshot())])
+            return response(body: ["ok": true, "rules": DiagnosticsPayload.rules(ruleEngine.snapshot())])
         case "/previews/capture":
             let space = requestedSpace(components) ?? store.space(orderIndex: store.config.lastKnownActiveOrderIndex)
             previewService.capturePreview(for: space)
             return response(body: [
                 "ok": previewService.existingPreviewURL(for: space) != nil,
-                "space": spacePayload(space),
+                "space": DiagnosticsPayload.space(space),
                 "file": previewService.existingPreviewURL(for: space)?.path ?? NSNull(),
                 "screenCaptureTrusted": previewService.isScreenCaptureTrusted
             ])
@@ -278,16 +278,16 @@ final class AppControlAPI {
                 "ok": true,
                 "space": space.orderIndex,
                 "addedApps": added,
-                "updated": spacePayload(store.space(orderIndex: space.orderIndex)),
-                "rules": ruleSuggestionPayload(ruleEngine.snapshot())
+                "updated": DiagnosticsPayload.space(store.space(orderIndex: space.orderIndex)),
+                "rules": DiagnosticsPayload.rules(ruleEngine.snapshot())
             ])
         case "/rules/resolve-duplicates":
             let resolved = ruleEngine.resolveDuplicateAssignments()
             return response(body: [
                 "ok": true,
                 "resolved": resolved,
-                "rules": ruleSuggestionPayload(ruleEngine.snapshot()),
-                "spaces": store.spaces.map(spacePayload)
+                "rules": DiagnosticsPayload.rules(ruleEngine.snapshot()),
+                "spaces": store.spaces.map(DiagnosticsPayload.space)
             ])
         case "/login-item/update":
             guard let enabled = components.queryItems?.first(where: { $0.name == "enabled" })?.value.flatMap(Bool.init) else {
@@ -295,9 +295,9 @@ final class AppControlAPI {
             }
             do {
                 try loginItemController.setEnabled(enabled)
-                return response(body: ["ok": true, "loginItem": loginItemPayload()])
+                return response(body: ["ok": true, "loginItem": DiagnosticsPayload.loginItem(loginItemController.state)])
             } catch {
-                return response(status: "500 Internal Server Error", body: ["ok": false, "error": error.localizedDescription, "loginItem": loginItemPayload()])
+                return response(status: "500 Internal Server Error", body: ["ok": false, "error": error.localizedDescription, "loginItem": DiagnosticsPayload.loginItem(loginItemController.state)])
             }
         case "/switch":
             guard let space = requestedSpace(components) else {
@@ -312,7 +312,7 @@ final class AppControlAPI {
             guard switched else {
                 return response(body: [
                     "ok": false,
-                    "space": spacePayload(space),
+                    "space": DiagnosticsPayload.space(space),
                     "switched": false,
                     "attempt": bridge.lastSwitchAttempt,
                     "results": []
@@ -324,7 +324,7 @@ final class AppControlAPI {
             let results = appLaunchService.launchAssignedApps(for: space)
             return response(body: [
                 "ok": results.contains(where: \.launched),
-                "space": spacePayload(space),
+                "space": DiagnosticsPayload.space(space),
                 "switched": switched,
                 "attempt": bridge.lastSwitchAttempt,
                 "results": results.map(appLaunchPayload)
@@ -520,12 +520,12 @@ final class AppControlAPI {
                 "items": previewService.previewPayload()
             ],
             "lastSwitchAttempt": bridge.lastSwitchAttempt,
-            "loginItem": loginItemPayload(),
-            "rules": ruleSuggestionPayload(ruleEngine.snapshot()),
+            "loginItem": DiagnosticsPayload.loginItem(loginItemController.state),
+            "rules": DiagnosticsPayload.rules(ruleEngine.snapshot()),
             "settings": settingsPayload(store.config.settings),
             "preferenceDefaults": preferenceDefaultsPayload(),
-            "spaces": store.spaces.map(spacePayload),
-            "spaceNameBindings": store.nameBindingSummaries().map(nameBindingPayload),
+            "spaces": store.spaces.map(DiagnosticsPayload.space),
+            "spaceNameBindings": store.nameBindingSummaries().map(DiagnosticsPayload.nameBinding),
             "visibleWindows": scanner.scanVisibleWindows().prefix(30).map { window in
                 [
                     "app": window.appName,
@@ -544,22 +544,6 @@ final class AppControlAPI {
         return payload
     }
 
-    private func spacePayload(_ space: SpaceMetadata) -> [String: Any] {
-        [
-            "id": space.id,
-            "stableID": space.stableID ?? NSNull(),
-            "orderIndex": space.orderIndex,
-            "desktopLabel": space.desktopLabel,
-            "name": space.displayName,
-            "rawName": space.name,
-            "color": space.colorHex,
-            "icon": space.icon,
-            "note": space.note,
-            "shortcut": space.shortcut,
-            "assignedApps": space.assignedApps
-        ]
-    }
-
     private func preferenceDefaultsPayload() -> [String: Any] {
         let preset = store.preferenceDefaults
         return [
@@ -574,32 +558,7 @@ final class AppControlAPI {
     }
 
     private func settingsPayload(_ settings: AppSettings) -> [String: Any] {
-        [
-            "hudEnabled": settings.hudEnabled,
-            "hudDurationSeconds": settings.hudDurationSeconds,
-            "hudFadeInSeconds": settings.hudFadeInSeconds,
-            "hudHoldSeconds": settings.hudHoldSeconds,
-            "hudScale": settings.hudScale,
-            "hudBackgroundOpacity": settings.hudBackgroundOpacity,
-            "hudPosition": settings.hudPosition.rawValue,
-            "hudShowsDesktopNumber": settings.hudShowsDesktopNumber,
-            "apiEnabled": settings.apiEnabled,
-            "globalHotkeyEnabled": settings.globalHotkeyEnabled,
-            "globalHotkeyShortcut": settings.globalHotkeyShortcut,
-            "notesOverlayHotkeyEnabled": settings.notesOverlayHotkeyEnabled,
-            "notesOverlayHotkeyShortcut": settings.notesOverlayHotkeyShortcut,
-            "notesOverlayItemOpacity": settings.notesOverlayItemOpacity,
-            "notesOverlayBackgroundOpacity": settings.notesOverlayBackgroundOpacity,
-            "notesOverlayHeightPixels": settings.notesOverlayHeightPixels,
-            "autoLaunchAssignedApps": settings.autoLaunchAssignedApps,
-            "onboardingCompleted": settings.onboardingCompleted,
-            "screenshotDirectoryPath": settings.screenshotDirectoryPath,
-            "effectiveScreenshotDirectory": settings.screenshotDirectoryPath.isEmpty
-                ? screenshotService.defaultScreenshotsDirectory.path
-                : URL(fileURLWithPath: (settings.screenshotDirectoryPath as NSString).expandingTildeInPath, isDirectory: true).path,
-            "menuBarDisplayMode": settings.menuBarDisplayMode.rawValue,
-            "menuBarLabelPosition": settings.menuBarLabelPosition.rawValue
-        ]
+        settings.diagnosticPayload(defaultScreenshotsDirectory: screenshotService.defaultScreenshotsDirectory)
     }
 
     private func menuBarPayload(_ snapshot: MenuBarStatusSnapshot) -> [String: Any] {
@@ -640,18 +599,6 @@ final class AppControlAPI {
         ]
     }
 
-    private func nameBindingPayload(_ binding: SpaceNameBindingSummary) -> [String: Any] {
-        [
-            "orderIndex": binding.orderIndex,
-            "displayName": binding.displayName,
-            "stableID": binding.stableID ?? NSNull(),
-            "mode": binding.mode.rawValue,
-            "modeLabel": binding.mode.label,
-            "rememberedStableIDCount": binding.rememberedStableIDCount,
-            "repairCandidateName": binding.repairCandidateName ?? NSNull()
-        ]
-    }
-
     private func detectionPayload() -> [String: Any] {
         guard let snapshot = detector.lastSnapshot else {
             return [
@@ -671,7 +618,7 @@ final class AppControlAPI {
             "spaceCount": snapshot.spaces.count,
             "displays": snapshot.displaySnapshots.map(displayDetectionPayload),
             "displayResolutions": snapshot.displayResolutions.map(displayResolutionPayload),
-            "details": detectionDetailsPayload(snapshot.diagnostics)
+            "details": DiagnosticsPayload.detectionDetails(snapshot.diagnostics)
         ]
     }
 
@@ -701,7 +648,9 @@ final class AppControlAPI {
             "screenMatch": resolution.screenMatch,
             "resolvedOrderIndex": resolution.resolvedOrderIndex ?? NSNull(),
             "resolvedDesktopLabel": resolution.resolvedOrderIndex.map { "Desktop \($0)" } ?? NSNull(),
-            "resolvedName": resolution.resolvedOrderIndex.map { store.space(orderIndex: $0).displayName } ?? NSNull(),
+            "fullscreenAppName": resolution.fullscreenSpace?.displayName ?? NSNull(),
+            "fullscreenStableID": resolution.fullscreenSpace?.stableID ?? NSNull(),
+            "resolvedName": resolution.fullscreenSpace?.displayName ?? resolution.resolvedOrderIndex.map { store.space(orderIndex: $0).displayName } ?? NSNull(),
             "source": resolution.source,
             "confidence": resolution.confidence.rawValue,
             "visibleWindowIDCount": resolution.visibleWindowIDCount,
@@ -710,50 +659,7 @@ final class AppControlAPI {
             "dockCurrentStableID": resolution.dockCurrentStableID ?? NSNull(),
             "dockResolvedOrderIndex": resolution.dockResolvedOrderIndex ?? NSNull(),
             "windowMatchedOrderIndex": resolution.windowMatchedOrderIndex ?? NSNull(),
-            "windowMatchCandidates": resolution.windowMatchCandidates.map(windowMatchPayload)
-        ]
-    }
-
-    private func detectionDetailsPayload(_ details: SpaceDetectionDiagnostics) -> [String: Any] {
-        [
-            "confidence": details.confidence.rawValue,
-            "dockSpaceCount": details.dockSpaceCount,
-            "dockMonitorCount": details.dockMonitorCount,
-            "dockCurrentStableID": details.dockCurrentStableID ?? NSNull(),
-            "dockCurrentStableIDs": details.dockCurrentStableIDs,
-            "dockActiveOrderIndex": details.dockActiveOrderIndex ?? NSNull(),
-            "visibleWindowIDCount": details.visibleWindowIDCount,
-            "uniqueVisibleWindowIDCount": details.uniqueVisibleWindowIDCount,
-            "ignoredSharedVisibleWindowIDCount": details.ignoredSharedVisibleWindowIDCount,
-            "spaceWindowPropertyCount": details.spaceWindowPropertyCount,
-            "windowMatchedOrderIndex": details.windowMatchedOrderIndex ?? NSNull(),
-            "windowMatchCandidates": details.windowMatchCandidates.map(windowMatchPayload),
-            "notes": details.notes
-        ]
-    }
-
-    private func windowMatchPayload(_ match: SpaceWindowMatch) -> [String: Any] {
-        [
-            "stableID": match.stableID,
-            "orderIndex": match.orderIndex,
-            "matchedVisibleWindowCount": match.matchedVisibleWindowCount,
-            "knownWindowCount": match.knownWindowCount
-        ]
-    }
-
-    private func ruleSuggestionPayload(_ snapshot: RuleSuggestionSnapshot) -> [String: Any] {
-        [
-            "generatedAt": Self.isoTimestamp.string(from: snapshot.generatedAt),
-            "matches": snapshot.matches.map { match in
-                [
-                    "app": match.appName,
-                    "space": match.spaceOrderIndex,
-                    "spaceName": match.spaceName,
-                    "windowCount": match.windowCount
-                ]
-            },
-            "unassignedVisibleApps": snapshot.unassignedVisibleApps,
-            "duplicateAssignments": snapshot.duplicateAssignments
+            "windowMatchCandidates": resolution.windowMatchCandidates.map(DiagnosticsPayload.windowMatch)
         ]
     }
 
@@ -798,19 +704,6 @@ final class AppControlAPI {
         var response = Data(headers.utf8)
         response.append(data)
         return response
-    }
-
-    private func loginItemPayload() -> [String: Any] {
-        let state = loginItemController.state
-        return [
-            "supported": state.supported,
-            "enabled": state.enabled,
-            "status": state.status,
-            "canRegister": state.canRegister,
-            "requiresUserApproval": state.requiresUserApproval,
-            "recoverySuggestion": state.recoverySuggestion,
-            "bundlePath": state.bundlePath
-        ]
     }
 
     private static let isoTimestamp: ISO8601DateFormatter = {

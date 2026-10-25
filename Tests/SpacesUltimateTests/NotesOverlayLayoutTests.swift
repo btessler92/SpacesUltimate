@@ -4,6 +4,25 @@ import XCTest
 
 @MainActor
 final class NotesOverlayLayoutTests: XCTestCase {
+    func testCardsFillWideDisplayInOneAndTwoRowsAndSecondarySingleDesktop() {
+        for (width, count) in [(CGFloat(3840), 17), (2560, 17), (1080, 1)] {
+            var spaces = namedSpaces(count: count)
+            if width == 2560 { for index in spaces.indices { spaces[index].name = "A longer Desktop title" } }
+            let panelWidth = NotesOverlayLayout.panelWidth(visibleWidth: width, spaceCount: count)
+            XCTAssertEqual(panelWidth, width - 32)
+            let arrangement = NotesOverlayLayout(spaces: spaces, availableWidth: panelWidth)
+            if width == 2560 { XCTAssertEqual(arrangement.rowCount, 2) }
+            let area = panelWidth - 24 - 42 - 8
+            let rightEdge = arrangement.rows.enumerated().map { row, indices in
+                arrangement.leadingOffset(for: row, cardAreaWidth: area)
+                    + CGFloat(indices.count) * arrangement.cardPitch - NotesOverlayLayout.cardSpacing
+            }.max() ?? 0
+            XCTAssertLessThanOrEqual(rightEdge, area)
+            XCTAssertLessThan(area - rightEdge, CGFloat(count), "Only pixel rounding may leave unused width")
+            XCTAssertGreaterThan(arrangement.cardWidth, 188)
+        }
+    }
+
     func testSameNamesUseTwoRowsOnLaptopAndOneOnWideDisplay() {
         let spaces = namedSpaces(count: 16)
         let laptop = layout(spaces, screenWidth: 1728)

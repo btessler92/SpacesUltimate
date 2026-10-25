@@ -1,88 +1,47 @@
 # Changelog
 
+## 0.1.3 — 2026-10-25
+
+- Expand Desktop Notes cards across each display, including both staggered rows.
+- Use the validated live display inventory for Desktop order and monitor placement;
+  ignore stale saved monitor records and keep Desktop metadata attached to stable IDs.
+- Show fullscreen apps as separate, unnumbered cards with app names and their own
+  highlight. Fullscreen Spaces no longer shift Desktop numbering. Relative navigation
+  still counts their physical positions between Desktops.
+- Back up config before the initial numbering correction and retain removed metadata
+  in stable-ID history. Do not copy another Desktop's notes onto newly discovered IDs.
+
+## 0.1.2 — local build
+
+- Prefer live per-display Space identity over stale Dock/window assignments, fixing
+  wrong Desktop labels and notes highlights after moving windows or on empty Desktops.
+  Keep the prior detection path as a fallback when the read-only live query is unavailable.
+- Consolidated documentation and removed stale feature scores and duplicated guides.
+- Made API smoke checks read-only and removed the destructive reset mode. `make test`
+  now runs unit tests, isolated script tests, and bundle verification without a live app.
+- Made launch reuse the running app. The editor helper now only opens the editor
+  through an already-enabled API; it no longer restarts the app or changes preferences.
+- Unified settings diagnostics so exports include all HUD controls reported by the API.
+- Shared the API/export formatters for Spaces, name bindings, detection details,
+  app rules, and login items while preserving their existing JSON fields.
+- Clarified that menu bar configuration checks do not prove on-screen visibility.
+
 ## 0.1.1
 
-- Stopped restoring the legacy named menu bar slot, which can leave the item invisible after relaunch.
-- Added an application Settings menu and Command-comma shortcut so Preferences remains accessible without the status item.
+- Added an application Settings menu and Command-comma shortcut, independent of the status item.
+- Removed restoration of the legacy named menu bar slot. macOS and menu bar managers
+  can still hide the item; this change does not bypass their controls.
+- Published a Developer ID signed, notarized universal app download.
 
-## Initial open-source release
+## 0.1.0 — initial public source release
 
-- Added the MIT license, contribution guidance, bug-report template, privacy and security documentation, and macOS CI.
-- Disabled the developer control API by default for new installations; preserved explicit existing preferences.
-- Bound the API to IPv4 loopback and rejected browser and non-local Host requests.
-- Added universal build and Developer ID signing/notarization tooling for GitHub downloads.
-- Made normal app launch independent of the optional developer API and ensured packaging rebuilds current source.
+- Published the Swift/AppKit app under MIT with contribution, privacy, security,
+  CI, and universal signing/notarization tooling.
+- Included Desktop names and notes, the Mission Control notes overlay, menu bar
+  indicator, editor, overview, HUD, configurable shortcuts, and app assignments.
+- Included stable-ID reconciliation and name recovery, backups, invalid-config
+  preservation, preference presets, launch at login, and diagnostics.
+- Disabled the developer API by default for new installations; preserved existing
+  explicit preferences. Bound it to loopback and rejected browser/non-local requests.
 
-## 0.1.0-dev
-
-- Place the compact 24-pixel Go squares inside each Desktop card, preserving the name space, staggered spacing, and 104-pixel default overlay height.
-- Add independent HUD fade-in, hold, and slow fade-out controls, size, background opacity, screen position, and Desktop-number visibility. Add a current-Desktop preview button that works with automatic notifications disabled, and prevent an earlier HUD animation from dismissing a newer preview.
-- Move Go into a 24-pixel square beside each card in the staggered two-row overlay, reducing its default height from 128 to 104 pixels. Keep the large Desktop numbers, place notes beneath names, and protect the external buttons from outside-click dismissal.
-- Organize Preferences into sidebar categories with short explanations and related controls together. Start on Desktop Notes, give Defaults & Reset its own page, and keep keyboard focus neutral when navigating categories.
-- Add Save Current as Default, Restore Default, and Factory Reset for Preferences, with a persisted personal preset, a default-versus-factory comparison, and default values alongside sliders. Resets include Launch at Login, preserve Desktop metadata and onboarding history, and retain the saved preset after Factory Reset.
-- Open and reopen Preferences with neutral focus instead of selecting a hotkey field, preventing unrelated typing from changing shortcuts until a field is deliberately selected.
-- Keep visible notes available while opening and using SpacesUltimate Settings, including its menu-bar entry. Add independent, live card/background opacity sliders with separate resets, persist background opacity, and make Settings scrollable so all controls remain accessible.
-- Adapt notes to two staggered rows on displays where a single row would hide more than half of a Desktop name, doubling the overlay height while keeping roomy layouts in one row. Add native light/dark layout previews and regression coverage for card placement and action hit testing.
-- Keep notes visible during outside actions that leave Mission Control open, defer dismissal until actual exit, and tolerate temporary Dock-window changes during mouse drags. Explicit Close still dismisses immediately.
-- Show a large, bold Desktop number to the left of each notes-card name, with a compact Go action underneath the name.
-- Restore mouse-up handling for the menu-bar notes toggle and keep the dropdown stable while background Space detection runs.
-- Accept the first click on inactive rename fields, finish rename commits before rebuilding notes, and preserve visible notes when the app is reopened.
-- Detect notes-card clicks consumed by Dock during Mission Control using Quartz mouse activity counters, and add a Go to Desktop action to each card with visible switching failure feedback.
-- Keep notes open after clicking or editing a card, including when that interaction exits Mission Control; outside clicks and explicit dismissal still close the overlay.
-- Open Desktop Notes automatically with Mission Control on every display and dismiss them on exit or clicks outside the cards, preserving native outside-click actions and Escape behavior.
-- Built initial Swift/AppKit SpacesUltimate app.
-- Added Space metadata storage and import/export.
-- Added Dock preference Space ID/order reconciliation.
-- Added menu bar indicator.
-- Added editor, HUD, overview, debug panel.
-- Added `NativeBridge` switching isolation.
-- Added localhost API and smoke-test script.
-- Added screenshot capture service.
-- Added development app bundle scripts.
-- Added docs for architecture, roadmap, and testing.
-- Added Preferences window and persisted app-level settings.
-- Added first-launch setup guide and onboarding API controls.
-- Added launch-at-login preference/status controls.
-- Improved overview layout for many Spaces with horizontal scrolling.
-- Added release app, local install, and zip packaging scripts.
-- Added diagnostics JSON export from the debug panel and localhost API.
-- Added latest Space detection source/event/time to status, debug, and diagnostics output.
-- Added display-only app-to-Space rule suggestions in status, debug, diagnostics, and smoke tests.
-- Added display-only rule matches to custom overview Space cards.
-- Added app identity and permission target diagnostics for Accessibility troubleshooting.
-- Added one-command editor launcher that disables SpacesUltimate's global hotkey.
-- Avoided hidden Debug/Preferences background refresh work that could make the editor feel unresponsive.
-- Made install script always rebuild release before copying the app bundle.
-- Made SpacesUltimate a regular Dock/Launchpad-visible app during MVP testing and reopen the editor when the app icon is clicked.
-- Made the menu bar item say `Spaces: <name>` and open the full app menu on click.
-- Keep automatic placeholder names like `Desktop 10` aligned with current Space order while preserving real custom names.
-- Hardened Space metadata normalization so malformed imported config cannot crash Space reconciliation with duplicate IDs/order values.
-- Removed the control API startup force unwrap for future port changes.
-- Added NSWorkspace active-Space change refreshes and Dock Current Space UUID detection before falling back to the CGWindow heuristic.
-- Brought roadmap status back in line with completed onboarding, login item, and overview work.
-- Added Preferences controls for screenshot directory and menu bar display mode.
-- Added a generated app icon and bundle icon wiring.
-- Added unit tests for active Space detection resolver edge cases.
-- Added app bundle verification and clearer launch-at-login recovery diagnostics.
-- Added smoke-test validation for captured screenshot PNG files.
-- Added one-click/API assignment of visible unassigned apps to a Space.
-- Added editor/API cleanup for duplicate app rule assignments.
-- Added explicit switch-and-launch behavior for assigned apps.
-- Added an optional multi-display Space label overlay for Mission Control-style use.
-- Added cached Space preview thumbnails to the custom overview.
-- Added custom shortcut playback for per-Space shortcut fields.
-- Added a configurable global overview hotkey.
-- Added config backups and restore-latest recovery.
-- Added multi-display presentation for the custom overview.
-- Added optional automatic launch of assigned apps when a Space becomes active.
-- Added structured active Space detection diagnostics with confidence, Dock monitor/current-Space details, visible-window match candidates, and ambiguity notes in Debug, `/status`, and diagnostics exports.
-- Improved the custom overview with live current-desktop window mini-layouts, cached preview age badges, and switch-failure feedback that stays visible instead of closing the overview.
-- Improved app assignment/routing workflows with per-Desktop Assign Visible and Launch Apps controls plus editor summaries for unassigned visible apps and duplicate app rules.
-- Added delayed settling refreshes after macOS active-Space notifications to improve detection after trackpad gestures, Mission Control, fullscreen transitions, and multi-monitor Space changes.
-- Added stable-ID Space metadata history so custom names can recover after temporary ID loss, Space removal, or later reappearance.
-- Added SpaceStore reconciliation tests for stable-ID reorder, ID outage/recovery, removed Space reappearance, automatic placeholder renumbering, and malformed config normalization.
-- Added name binding status in the editor, Debug, `/status`, and diagnostics exports so each Desktop reports Stable ID vs Order fallback.
-- Added conservative name repair in the editor and `/config/repair-names` to restore remembered custom metadata for automatic order-fallback rows.
-- Preserved invalid config files before falling back to defaults on startup, with Debug/API/diagnostics visibility and unit coverage.
-- Restored the menu bar indicator as a visible Desktop-number badge so it does not disappear on crowded menu bars.
-- Added a configurable Desktop label position with center, right-of-center, far-right, and hidden options in Preferences, API status/update, and diagnostics.
+Detailed pre-release development history remains in Git.

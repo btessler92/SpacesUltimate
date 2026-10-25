@@ -10,7 +10,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-curl -fsS "$API/status" >"$STATUS_JSON"
+curl -fsS --connect-timeout 2 --max-time 10 "$API/status" >"$STATUS_JSON"
 
 python3 - "$STATUS_JSON" "$EXPECTED_EXECUTABLE" <<'PY'
 import json
@@ -24,7 +24,6 @@ failures = []
 app_identity = status.get("appIdentity") or {}
 menu_bar = status.get("menuBar") or {}
 menu_items = menu_bar.get("menuItemTitles") or []
-settings = status.get("settings") or {}
 
 if app_identity.get("executablePath") != expected_executable:
     failures.append(
@@ -65,9 +64,11 @@ if failures:
         print(f"- {failure}", file=sys.stderr)
     sys.exit(1)
 
-print("Menu bar status validation passed")
+print("Menu bar configuration validation passed (on-screen visibility needs a visual check)")
 print(f"- executable: {app_identity.get('executablePath')}")
 print(f"- badge: {menu_bar.get('badgeText')} title: {menu_bar.get('title')!r}")
-print(f"- visible: {menu_bar.get('isVisible')} screens: {menu_bar.get('screenCount')}")
+print(f"- requested visible: {menu_bar.get('isVisible')} screens: {menu_bar.get('screenCount')}")
+print(f"- window occlusion reports visible: {menu_bar.get('buttonWindowOcclusionVisible')}")
+print("- macOS or a menu bar manager may still hide the item; isVisible alone does not prove it is on screen.")
 print(f"- menu items: {', '.join(menu_items)}")
 PY

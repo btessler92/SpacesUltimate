@@ -262,7 +262,7 @@ final class LabelOverlayView: NSView {
         stack.widthAnchor.constraint(equalToConstant: presentationLayout.cardWidth).isActive = true
         if compact { stack.heightAnchor.constraint(equalToConstant: rowHeight).isActive = true }
 
-        let number = NSTextField(labelWithString: String(space.orderIndex))
+        let number = NSTextField(labelWithString: space.isFullscreen ? "⛶" : String(space.orderIndex))
         let numberFont = NotesOverlayLayout.numberFont(cardWidth: labelWidth)
         number.font = numberFont
         number.textColor = .labelColor
@@ -301,7 +301,8 @@ final class LabelOverlayView: NSView {
         title.maximumNumberOfLines = 1
         title.widthAnchor.constraint(lessThanOrEqualToConstant: textWidth).isActive = true
         title.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        title.toolTip = "\(space.displayName) — Double-click to rename this Desktop"
+        title.allowsNameEditing = !space.isFullscreen
+        title.toolTip = space.isFullscreen ? "\(space.displayName) — Fullscreen app" : "\(space.displayName) — Double-click to rename this Desktop"
         title.onBeginEditing = { [weak self] in self?.beginEditing() }
         title.onSingleClick = { [weak self] in self?.beginEditing() }
 

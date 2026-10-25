@@ -1,9 +1,9 @@
 # Distribution
 
 SpacesUltimate is free, MIT-licensed software distributed through
-[GitHub](https://github.com/btessler92/SpacesUltimate). The initial public release
-provides source code. A signed, notarized downloadable app requires the
-maintainer's Developer ID Application certificate and notarization credentials.
+[GitHub](https://github.com/btessler92/SpacesUltimate). Version 0.1.3 includes a Developer ID signed, notarized universal download.
+The steps below are for maintainers producing future releases; they require a
+Developer ID Application certificate and notarization credentials.
 Do not describe an ad-hoc-signed development build as notarized.
 
 ## Local builds
